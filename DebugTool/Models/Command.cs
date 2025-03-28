@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DebugTool.Models
+namespace RevitRemoteCommandTester.Models
 {
     public class Command : INotifyPropertyChanged
     {

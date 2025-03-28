@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace DebugTool.Models
+namespace RevitRemoteCommandTester.Models
 {
     public class Parameter : INotifyPropertyChanged
     {

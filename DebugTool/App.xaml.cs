@@ -2,7 +2,7 @@
 using System.Data;
 using System.Windows;
 
-namespace DebugTool
+namespace RevitRemoteCommandTester
 {
     /// <summary>
     /// Interaction logic for App.xaml

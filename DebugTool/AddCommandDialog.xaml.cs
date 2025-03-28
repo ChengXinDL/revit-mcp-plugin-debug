@@ -1,7 +1,7 @@
 ﻿// AddCommandDialog.xaml.cs
 using System.Windows;
 
-namespace DebugTool
+namespace RevitRemoteCommandTester
 {
     public partial class AddCommandDialog : Window
     {

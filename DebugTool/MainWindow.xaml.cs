@@ -1,4 +1,4 @@
-﻿using DebugTool.Models;
+﻿using RevitRemoteCommandTester.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -11,7 +11,7 @@ using System.Windows.Media;
 using System.Net.Sockets;
 using System.Text;
 
-namespace DebugTool
+namespace RevitRemoteCommandTester
 {
     public partial class MainWindow : Window
     {
