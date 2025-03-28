@@ -4,9 +4,560 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DebugTool"
+        xmlns:models="clr-namespace:DebugTool.Models"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="Debug Tool" Height="600" Width="1000"
+        Background="#F5F5F5"
+        FontFamily="Segoe UI">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <Style x:Key="HeaderTextBlockStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Foreground" Value="#1E88E5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
 
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect ShadowDepth="1" BlurRadius="8" Opacity="0.2" Color="#000000"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#1976D2"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1565C0"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#1976D2"/>
+            <Setter Property="BorderBrush" Value="#1976D2"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E3F2FD"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="IconButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#455A64"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="4"
+                                Padding="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E0E0E0"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- 自定义TreeView样式 -->
+        <SolidColorBrush x:Key="TreeViewItemSelectedBg" Color="#E3F2FD"/>
+
+        <Style x:Key="CustomTreeViewItemStyle" TargetType="{x:Type TreeViewItem}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="2,4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TreeViewItem}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Border x:Name="Bd" 
+                    Background="{TemplateBinding Background}"
+                    BorderThickness="0" 
+                    Padding="{TemplateBinding Padding}"
+                    CornerRadius="4"
+                    SnapsToDevicePixels="True">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ToggleButton x:Name="Expander" 
+                                         ClickMode="Press"
+                                         IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                         Margin="0,0,4,0">
+                                        <ToggleButton.Style>
+                                            <Style TargetType="{x:Type ToggleButton}">
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="{x:Type ToggleButton}">
+                                                            <Border Background="Transparent" Width="16" Height="16">
+                                                                <Path x:Name="ExpandPath" 
+                                                      Stroke="#606060" 
+                                                      StrokeThickness="1.5"
+                                                      Data="M 4,8 L 12,8 M 8,4 L 8,12"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"/>
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsChecked" Value="True">
+                                                                    <Setter TargetName="ExpandPath" Property="Data" Value="M 4,8 L 12,8"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasItems, RelativeSource={RelativeSource TemplatedParent}}" Value="False">
+                                                        <Setter Property="Visibility" Value="Hidden"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ToggleButton.Style>
+                                    </ToggleButton>
+                                    <ContentPresenter x:Name="PART_Header" 
+                                     Grid.Column="1"
+                                     ContentSource="Header" 
+                                     HorizontalAlignment="Stretch" 
+                                     SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                </Grid>
+                            </Border>
+                            <ItemsPresenter x:Name="ItemsHost" 
+                           Grid.Row="1"
+                           Margin="20,2,0,0"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" TargetName="Bd" Value="{StaticResource TreeViewItemSelectedBg}"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Collection信息面板样式 -->
+        <Style x:Key="InfoBlockStyle" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,4,0,4"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+
+        <!-- 操作面板弹出样式 -->
+        <Style x:Key="OperationsPanelStyle" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#DDDDDD"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect ShadowDepth="2" BlurRadius="5" Opacity="0.3" Color="#000000"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="OperationsMenuItemStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="3"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                             VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#F0F0F0"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左侧导航区 -->
+            <Border Style="{StaticResource CardStyle}" Grid.Column="0" Margin="0,0,16,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Button Grid.Row="0" Content="Add Collection" Style="{StaticResource PrimaryButtonStyle}"
+                            Margin="0,0,0,16" Click="AddCollection_Click"/>
+
+                    <TreeView Grid.Row="1" x:Name="NavigationTreeView"
+                              BorderThickness="0" Background="Transparent"
+                              ItemContainerStyle="{StaticResource CustomTreeViewItemStyle}"
+                              SelectedItemChanged="TreeView_SelectedItemChanged">
+                        <TreeView.Resources>
+                            <HierarchicalDataTemplate DataType="{x:Type models:Collection}" ItemsSource="{Binding Commands}">
+                                <Grid Margin="0,4" HorizontalAlignment="Stretch">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center"/>
+
+                                    <Button x:Name="MoreOptionsButton" Grid.Column="1"
+                                            Style="{StaticResource IconButtonStyle}"
+                                            Width="24" Height="24" Margin="4,0,0,0" 
+                                            ToolTip="More Operations"
+                                            Click="ShowCollectionOptions_Click" 
+                                            Tag="{Binding}">
+                                        <Path Data="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z" 
+                                              Fill="#757575" Width="14" Height="14"/>
+                                    </Button>
+
+                                    <!-- 操作面板 (初始隐藏) -->
+                                    <Popup x:Name="CollectionOptionsPopup" 
+                                           PlacementTarget="{Binding ElementName=MoreOptionsButton}"
+                                           Placement="Right"
+                                           AllowsTransparency="True"
+                                           StaysOpen="False"
+                                           PopupAnimation="Fade">
+                                        <Border Style="{StaticResource OperationsPanelStyle}" MinWidth="150">
+                                            <StackPanel>
+                                                <Button Content="Rename Collection" 
+                                                        Style="{StaticResource OperationsMenuItemStyle}" 
+                                                        Click="RenameCollection_Click"
+                                                        Tag="{Binding}"/>
+                                                <Separator Margin="0,4"/>
+                                                <Button Content="Add Command" 
+                                                        Style="{StaticResource OperationsMenuItemStyle}" 
+                                                        Click="AddTool_Click"
+                                                        Tag="{Binding}"/>
+                                                <Separator Margin="0,4"/>
+                                                <Button Content="Delete Collection" 
+                                                        Style="{StaticResource OperationsMenuItemStyle}" 
+                                                        Foreground="#F44336"
+                                                        Click="DeleteCollection_Click"
+                                                        Tag="{Binding}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Popup>
+                                </Grid>
+                            </HierarchicalDataTemplate>
+
+                            <DataTemplate DataType="{x:Type models:Command}">
+                                <Grid Margin="0,4" HorizontalAlignment="Stretch">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center"/>
+
+                                    <Button x:Name="CommandMoreOptionsButton" Grid.Column="1"
+                                            Style="{StaticResource IconButtonStyle}"
+                                            Width="24" Height="24" Margin="4,0,0,0" 
+                                            ToolTip="Command Options"
+                                            Click="ShowCommandOptions_Click" 
+                                            Tag="{Binding}">
+                                        <Path Data="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z" 
+                                              Fill="#757575" Width="14" Height="14"/>
+                                    </Button>
+
+                                    <!-- 命令操作面板 (初始隐藏) -->
+                                    <Popup x:Name="CommandOptionsPopup" 
+                                           PlacementTarget="{Binding ElementName=CommandMoreOptionsButton}"
+                                           Placement="Right"
+                                           AllowsTransparency="True"
+                                           StaysOpen="False"
+                                           PopupAnimation="Fade">
+                                        <Border Style="{StaticResource OperationsPanelStyle}" MinWidth="150">
+                                            <StackPanel>
+                                                <Button Content="Rename Command" 
+                                                        Style="{StaticResource OperationsMenuItemStyle}" 
+                                                        Click="RenameCommand_Click"
+                                                        Tag="{Binding}"/>
+                                                <Separator Margin="0,4"/>
+                                                <Button Content="Delete Command" 
+                                                        Style="{StaticResource OperationsMenuItemStyle}" 
+                                                        Foreground="#F44336"
+                                                        Click="DeleteCommand_Click"
+                                                        Tag="{Binding}"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Popup>
+                                </Grid>
+                            </DataTemplate>
+                        </TreeView.Resources>
+                    </TreeView>
+                </Grid>
+            </Border>
+
+            <!-- 右侧操作区 -->
+            <Border Style="{StaticResource CardStyle}" Grid.Column="1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" x:Name="SelectedItemName" 
+                   FontSize="20" FontWeight="Medium" Margin="0,0,0,16"
+                   Foreground="#37474F"/>
+
+                    <!-- Collection信息面板 -->
+                    <StackPanel Grid.Row="1" x:Name="CollectionInfoPanel" Visibility="Collapsed">
+                        <TextBlock Text="Collection Information" Style="{StaticResource HeaderTextBlockStyle}"/>
+                        <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" 
+                    Margin="0,0,0,16" Padding="16">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,4">
+                                    <TextBlock Text="Commands: " FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="CommandCount" Text="0" Style="{StaticResource InfoBlockStyle}"/>
+                                </StackPanel>
+
+                                <TextBlock Text="Description" FontWeight="SemiBold" Margin="0,8,0,4"/>
+                                <TextBlock x:Name="CollectionDescription" 
+                               Style="{StaticResource InfoBlockStyle}"
+                               Text="A collection of related commands. Select a command from the left panel to view and edit its parameters."/>
+
+                                <Button x:Name="AddCommandButton" Content="Add New Command" 
+                                    Style="{StaticResource SecondaryButtonStyle}"
+                                    HorizontalAlignment="Left" Margin="0,16,0,0"
+                                    Click="AddCommand_FromInfoPanel"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- 命令参数面板 -->
+                    <ScrollViewer Grid.Row="1" x:Name="CommandParametersPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <TextBlock Text="Parameters" Style="{StaticResource HeaderTextBlockStyle}"/>
+
+                            <!-- 键值对编辑区 -->
+                            <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" 
+                                    Margin="0,0,0,16" Padding="8">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- 表头 -->
+                                    <Grid Grid.Row="0" Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Key" FontWeight="SemiBold" Margin="4,0"/>
+                                        <TextBlock Grid.Column="2" Text="Value" FontWeight="SemiBold" Margin="4,0"/>
+                                    </Grid>
+
+                                    <!-- 参数列表 -->
+                                    <ItemsControl Grid.Row="1" x:Name="ParametersItemsControl">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,4">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Margin="0,0,8,0">
+                                                        <TextBox Text="{Binding Key}" BorderThickness="0" Padding="4"/>
+                                                    </Border>
+                                                    <!-- 类型选择器 -->
+                                                    <ComboBox Grid.Column="1" Width="80" Margin="0,0,8,0" SelectedIndex="0"
+                                                              x:Name="ValueTypeSelector" Tag="{Binding}">
+                                                        <ComboBoxItem Content="Text" Tag="text"/>
+                                                        <ComboBoxItem Content="Number" Tag="number"/>
+                                                        <ComboBoxItem Content="Boolean" Tag="boolean"/>
+                                                        <ComboBoxItem Content="Array" Tag="array"/>
+                                                        <ComboBoxItem Content="JSON" Tag="json"/>
+                                                        <ComboBoxItem Content="Null" Tag="null"/>
+                                                    </ComboBox>
+                                                    <!-- 值编辑器 -->
+                                                    <Grid Grid.Column="2" Margin="0,0,8,0">
+                                                        <!-- 标准文本框 - 默认可见 -->
+                                                        <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" x:Name="TextValueBorder">
+                                                            <TextBox Text="{Binding Value}" BorderThickness="0" Padding="4" x:Name="TextValueBox"/>
+                                                        </Border>
+
+                                                        <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" x:Name="ArrayValueBorder" Visibility="Collapsed">
+                                                            <Grid>
+                                                                <Grid.RowDefinitions>
+                                                                    <RowDefinition Height="Auto"/>
+                                                                    <RowDefinition Height="*"/>
+                                                                    <RowDefinition Height="Auto"/>
+                                                                </Grid.RowDefinitions>
+
+                                                                <!-- 数组项列表 -->
+                                                                <ItemsControl Grid.Row="1" x:Name="ArrayItemsControl">
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <Grid Margin="0,2">
+                                                                                <Grid.ColumnDefinitions>
+                                                                                    <ColumnDefinition Width="*"/>
+                                                                                    <ColumnDefinition Width="Auto"/>
+                                                                                </Grid.ColumnDefinitions>
+
+                                                                                <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Margin="0,0,4,0">
+                                                                                    <TextBox Text="{Binding}" BorderThickness="0" Padding="2"/>
+                                                                                </Border>
+
+                                                                                <Button Grid.Column="1" Style="{StaticResource IconButtonStyle}"
+                                    Width="24" Height="24"
+                                    Click="RemoveArrayItem_Click" 
+                                    Tag="{Binding}">
+                                                                                    <Path Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" 
+                                      Fill="#F44336" Width="10" Height="10"/>
+                                                                                </Button>
+                                                                            </Grid>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+
+                                                                <!-- 添加数组项按钮 -->
+                                                                <Button Grid.Row="2" Content="+ Add Item" 
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    HorizontalAlignment="Left" Margin="0,4,0,0"
+                    Click="AddArrayItem_Click"
+                    Padding="8,2"/>
+                                                            </Grid>
+                                                        </Border>
+
+
+                                                        <!-- JSON编辑器 - 当选择JSON类型时可见 -->
+                                                        <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" x:Name="JsonValueBorder" Visibility="Collapsed">
+                                                            <TextBox Text="{Binding Value}" BorderThickness="0" Padding="4" 
+                                                                     x:Name="JsonValueBox" 
+                                                                     FontFamily="Consolas"
+                                                                     AcceptsReturn="True" 
+                                                                     VerticalScrollBarVisibility="Auto"
+                                                                     MinHeight="80"
+                                                                     TextWrapping="Wrap"/>
+                                                        </Border>
+                                                    </Grid>
+
+                                                    <Button Grid.Column="3" Style="{StaticResource IconButtonStyle}"
+                                                            Click="RemoveParameter_Click" 
+                                                            Tag="{Binding}"
+                                                            ToolTip="Remove Parameter">
+                                                        <Path Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" 
+                                                              Fill="#F44336" Width="14" Height="14"/>
+                                                    </Button>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <!-- 添加参数按钮 -->
+                                    <Button Grid.Row="2" Content="Add Parameter" 
+                                            Style="{StaticResource SecondaryButtonStyle}"
+                                            HorizontalAlignment="Left" Margin="0,8,0,0"
+                                            Click="AddParameter_Click"/>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <Border Grid.Row="2" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" 
+            Margin="0,0,0,16" Padding="16" x:Name="ResponsePanel" 
+            Visibility="Collapsed">
+                        <StackPanel>
+                            <TextBlock Text="Response" Style="{StaticResource HeaderTextBlockStyle}"/>
+                            <TextBox x:Name="ResponseTextBox" 
+                     Height="150" 
+                     TextWrapping="Wrap" 
+                     VerticalScrollBarVisibility="Auto"
+                     HorizontalScrollBarVisibility="Auto"
+                     IsReadOnly="True"
+                     FontFamily="Consolas"
+                     Margin="0,8,0,0"
+                     Padding="8"
+                     Background="#F8F8F8"
+                     BorderThickness="1"
+                     BorderBrush="#E0E0E0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                        <Button x:Name="SendCommandButton" Content="Send Command" 
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Click="SendCommand_Click" 
+                    Visibility="Collapsed"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </Window>
