@@ -1,8 +1,6 @@
 ﻿using Newtonsoft.Json;
-using System;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace RevitRemoteCommandTester.Services
 {
@@ -29,8 +27,8 @@ namespace RevitRemoteCommandTester.Services
             var jsonRpcRequest = new
             {
                 jsonrpc = "2.0",
-                method = method,
-                @params = parameters,
+                method,
+                parameters,
                 id = 1
             };
 

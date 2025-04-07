@@ -22,13 +22,11 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="300"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-
             <!-- 左侧导航区 -->
             <Border Style="{StaticResource CardStyle}" Grid.Column="0" Margin="0,0,16,0">
                 <Grid>
@@ -36,10 +34,8 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-
                     <Button Grid.Row="0" Content="Add Collection" Style="{StaticResource PrimaryButtonStyle}"
                             Margin="0,0,0,16" Click="AddCollection_Click"/>
-
                     <TreeView Grid.Row="1" x:Name="NavigationTreeView"
                               BorderThickness="0" Background="Transparent"
                               ItemContainerStyle="{StaticResource CustomTreeViewItemStyle}"
@@ -51,9 +47,7 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-
                                     <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center"/>
-
                                     <Button x:Name="MoreOptionsButton" Grid.Column="1"
                                             Style="{StaticResource IconButtonStyle}"
                                             Width="24" Height="24" Margin="4,0,0,0" 
@@ -63,7 +57,6 @@
                                         <Path Data="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z" 
                                               Fill="#757575" Width="14" Height="14"/>
                                     </Button>
-
                                     <!-- 操作面板 (初始隐藏) -->
                                     <Popup x:Name="CollectionOptionsPopup" 
                                            PlacementTarget="{Binding ElementName=MoreOptionsButton}"
@@ -93,16 +86,13 @@
                                     </Popup>
                                 </Grid>
                             </HierarchicalDataTemplate>
-
                             <DataTemplate DataType="{x:Type models:Command}">
                                 <Grid Margin="0,4" HorizontalAlignment="Stretch">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-
                                     <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center"/>
-
                                     <Button x:Name="CommandMoreOptionsButton" Grid.Column="1"
                                             Style="{StaticResource IconButtonStyle}"
                                             Width="24" Height="24" Margin="4,0,0,0" 
@@ -112,7 +102,6 @@
                                         <Path Data="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z" 
                                               Fill="#757575" Width="14" Height="14"/>
                                     </Button>
-
                                     <!-- 命令操作面板 (初始隐藏) -->
                                     <Popup x:Name="CommandOptionsPopup" 
                                            PlacementTarget="{Binding ElementName=CommandMoreOptionsButton}"
@@ -141,7 +130,6 @@
                     </TreeView>
                 </Grid>
             </Border>
-
             <!-- 右侧操作区 -->
             <Border Style="{StaticResource CardStyle}" Grid.Column="1">
                 <Grid>
@@ -151,241 +139,89 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-
                     <TextBlock Grid.Row="0" x:Name="SelectedItemName" 
-                   FontSize="20" FontWeight="Medium" Margin="0,0,0,16"
-                   Foreground="#37474F"/>
-
+                               FontSize="20" FontWeight="Medium" Margin="0,0,0,16"
+                               Foreground="#37474F"/>
                     <!-- Collection信息面板 -->
                     <StackPanel Grid.Row="1" x:Name="CollectionInfoPanel" Visibility="Collapsed">
                         <TextBlock Text="Collection Information" Style="{StaticResource HeaderTextBlockStyle}"/>
                         <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" 
-                          Margin="0,0,0,16" Padding="16">
+                                Margin="0,0,0,16" Padding="16">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,4">
                                     <TextBlock Text="Commands: " FontWeight="SemiBold"/>
                                     <TextBlock x:Name="CommandCount" Text="0" Style="{StaticResource InfoBlockStyle}"/>
                                 </StackPanel>
-
                                 <TextBlock Text="Description" FontWeight="SemiBold" Margin="0,8,0,4"/>
                                 <TextBlock x:Name="CollectionDescription" 
-                               Style="{StaticResource InfoBlockStyle}"
-                               Text="A collection of related commands. Select a command from the left panel to view and edit its parameters."/>
-
+                                           Style="{StaticResource InfoBlockStyle}"
+                                           Text="A collection of related commands. Select a command from the left panel to view and edit its parameters."/>
                                 <Button x:Name="AddCommandButton" Content="Add New Command" 
-                                    Style="{StaticResource SecondaryButtonStyle}"
-                                    HorizontalAlignment="Left" Margin="0,16,0,0"
-                                    Click="AddCommand_FromInfoPanel"/>
+                                        Style="{StaticResource SecondaryButtonStyle}"
+                                        HorizontalAlignment="Left" Margin="0,16,0,0"
+                                        Click="AddCommand_FromInfoPanel"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>
-
-                    <!-- 命令参数面板 -->
+                    <!-- 命令参数面板（简化版本，只有一个JSON输入框） -->
                     <ScrollViewer Grid.Row="1" x:Name="CommandParametersPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
-                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
-
                             <Grid Grid.Row="0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="Parameters" Style="{StaticResource HeaderTextBlockStyle}"/>
+                                <TextBlock Text="Command Parameters (JSON)" Style="{StaticResource HeaderTextBlockStyle}"/>
                                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                    <Button Content="Import" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0" Click="ImportParameters_Click"/>
-                                    <Button Content="Export" Style="{StaticResource SecondaryButtonStyle}" Click="ExportParameters_Click"/>
+                                    <Button Content="Format JSON" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0" Click="FormatJson_Click"/>
+                                    <Button Content="Clear" Style="{StaticResource SecondaryButtonStyle}" Click="ClearJson_Click"/>
                                 </StackPanel>
                             </Grid>
-                            <Grid Grid.Row="1">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-
-                                <!-- 参数编辑器 -->
-                                <Border Grid.Column="0" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Margin="0,8,8,0" Padding="8">
-                                    <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="*"/>
-                                            <RowDefinition Height="Auto"/>
-                                        </Grid.RowDefinitions>
-
-                                        <!-- 表头 -->
-                                        <Grid Grid.Row="0" Margin="0,0,0,8">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="1.5*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="Parameter Name" FontWeight="SemiBold" Margin="4,0"/>
-                                            <TextBlock Grid.Column="1" Text="Type" FontWeight="SemiBold" Margin="4,0"/>
-                                            <TextBlock Grid.Column="2" Text="Value" FontWeight="SemiBold" Margin="4,0"/>
-                                        </Grid>
-
-                                        <!-- 参数列表 -->
-                                        <ItemsControl Grid.Row="1" x:Name="ParametersItemsControl">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Border BorderBrush="#F0F0F0" BorderThickness="0,0,0,1" Padding="0,4">
-                                                        <Grid>
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*"/>
-                                                                <ColumnDefinition Width="100"/>
-                                                                <ColumnDefinition Width="1.5*"/>
-                                                                <ColumnDefinition Width="Auto"/>
-                                                            </Grid.ColumnDefinitions>
-
-                                                            <!-- 参数名称 -->
-                                                            <TextBox x:Name="KeyTextBox" Grid.Column="0" 
-                                                 Text="{Binding Key}" 
-                                                 BorderThickness="1" BorderBrush="#E0E0E0" 
-                                                 Padding="6,4" Margin="0,0,8,0"
-                                                 ToolTip="Parameter name"/>
-
-                                                            <!-- 类型选择器 -->
-                                                            <ComboBox Grid.Column="1" x:Name="ValueTypeSelector"
-                                                  SelectedIndex="0" Margin="0,0,8,0"
-                                                  Tag="{Binding}"
-                                                  SelectionChanged="ValueTypeSelector_SelectionChanged">
-                                                                <ComboBoxItem Content="String" Tag="string"/>
-                                                                <ComboBoxItem Content="Number" Tag="number"/>
-                                                                <ComboBoxItem Content="Boolean" Tag="boolean"/>
-                                                                <ComboBoxItem Content="Object" Tag="object"/>
-                                                                <ComboBoxItem Content="Array" Tag="array"/>
-                                                                <ComboBoxItem Content="Null" Tag="null"/>
-                                                            </ComboBox>
-
-                                                            <!-- 值编辑区域 -->
-                                                            <Grid Grid.Column="2" Margin="0,0,8,0">
-                                                                <!-- 字符串编辑器 -->
-                                                                <TextBox x:Name="StringValueEditor" Visibility="Visible"
-                                                    Text="{Binding Value}" 
-                                                    BorderThickness="1" BorderBrush="#E0E0E0"
-                                                    Padding="6,4"/>
-
-                                                                <!-- 数字编辑器 -->
-                                                                <TextBox x:Name="NumberValueEditor" Visibility="Collapsed"
-                                                    Text="{Binding Value}" 
-                                                    BorderThickness="1" BorderBrush="#E0E0E0"
-                                                    Padding="6,4"/>
-
-                                                                <!-- 布尔编辑器 -->
-                                                                <ComboBox x:Name="BooleanValueEditor" Visibility="Collapsed"
-                                                     SelectedIndex="0" IsEditable="False"
-                                                     BorderThickness="1" BorderBrush="#E0E0E0"
-                                                     Padding="6,4">
-                                                                    <ComboBoxItem Content="true" Tag="true"/>
-                                                                    <ComboBoxItem Content="false" Tag="false"/>
-                                                                </ComboBox>
-
-                                                                <!-- 对象编辑器按钮 -->
-                                                                <Button x:Name="ObjectEditorButton" Visibility="Collapsed"
-                                                   Content="Edit Object" 
-                                                   Style="{StaticResource SecondaryButtonStyle}"
-                                                   Click="EditObjectValue_Click"
-                                                   Tag="{Binding}"/>
-
-                                                                <!-- 数组编辑器按钮 -->
-                                                                <Button x:Name="ArrayEditorButton" Visibility="Collapsed"
-                                                   Content="Edit Array" 
-                                                   Style="{StaticResource SecondaryButtonStyle}"
-                                                   Click="EditArrayValue_Click"
-                                                   Tag="{Binding}"/>
-
-                                                                <!-- NULL编辑器 -->
-                                                                <TextBlock x:Name="NullValueDisplay" Visibility="Collapsed"
-                                                      Text="null" Foreground="#888888"
-                                                      VerticalAlignment="Center" Padding="6,4"/>
-                                                            </Grid>
-
-                                                            <!-- 删除按钮 -->
-                                                            <Button Grid.Column="3" 
-                                                Style="{StaticResource IconButtonStyle}"
-                                                Click="RemoveParameter_Click" 
-                                                Tag="{Binding}"
-                                                ToolTip="Remove Parameter">
-                                                                <Path Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" 
-                                                  Fill="#F44336" Width="14" Height="14"/>
-                                                            </Button>
-                                                        </Grid>
-                                                    </Border>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-
-                                        <!-- 添加参数按钮 -->
-                                        <Button Grid.Row="2" Content="Add Parameter" 
-                            Style="{StaticResource SecondaryButtonStyle}"
-                            HorizontalAlignment="Left" Margin="0,8,0,0"
-                            Click="AddParameter_Click"/>
-                                    </Grid>
-                                </Border>
-
-                                <!-- 分隔线 -->
-                                <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" 
-                         VerticalAlignment="Stretch" Background="#E0E0E0"/>
-
-                                <!-- JSON预览 -->
-                                <Border Grid.Column="2" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" 
-                   Margin="8,8,0,0" Padding="8">
-                                    <Grid>
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="*"/>
-                                        </Grid.RowDefinitions>
-
-                                        <TextBlock Grid.Row="0" Text="JSON-RPC Preview" 
-                               FontWeight="SemiBold" Margin="0,0,0,8"/>
-
-                                        <TextBox Grid.Row="1" x:Name="JsonPreviewTextBox"
-                            IsReadOnly="True"
-                            TextWrapping="Wrap"
-                            FontFamily="Consolas"
-                            FontSize="12"
-                            BorderThickness="1"
-                            BorderBrush="#E0E0E0"
-                            Background="#F8F8F8"
-                            VerticalScrollBarVisibility="Auto"
-                            HorizontalScrollBarVisibility="Auto"
-                            Padding="8"/>
-                                    </Grid>
-                                </Border>
-                            </Grid>
+                            <!-- JSON 参数编辑器 -->
+                            <Border Grid.Row="1" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" 
+                                    Margin="0,8,0,0" Padding="8">
+                                <TextBox x:Name="JsonParametersTextBox"
+                                         AcceptsReturn="True"
+                                         TextWrapping="Wrap"
+                                         FontFamily="Consolas"
+                                         FontSize="12"
+                                         BorderThickness="0"
+                                         VerticalScrollBarVisibility="Auto"
+                                         HorizontalScrollBarVisibility="Auto"
+                                         Padding="8"
+                                         MinHeight="300"
+                                         TextChanged="JsonParameters_TextChanged"/>
+                            </Border>
                         </Grid>
                     </ScrollViewer>
-
                     <Border Grid.Row="2" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" 
-            Margin="0,0,0,16" Padding="16" x:Name="ResponsePanel" 
-            Visibility="Collapsed">
+                            Margin="0,16,0,16" Padding="16" x:Name="ResponsePanel" 
+                            Visibility="Collapsed">
                         <StackPanel>
                             <TextBlock Text="Response" Style="{StaticResource HeaderTextBlockStyle}"/>
                             <TextBox x:Name="ResponseTextBox" 
-                     Height="150" 
-                     TextWrapping="Wrap" 
-                     VerticalScrollBarVisibility="Auto"
-                     HorizontalScrollBarVisibility="Auto"
-                     IsReadOnly="True"
-                     FontFamily="Consolas"
-                     Margin="0,8,0,0"
-                     Padding="8"
-                     Background="#F8F8F8"
-                     BorderThickness="1"
-                     BorderBrush="#E0E0E0"/>
+                                     Height="150" 
+                                     TextWrapping="Wrap" 
+                                     VerticalScrollBarVisibility="Auto"
+                                     HorizontalScrollBarVisibility="Auto"
+                                     IsReadOnly="True"
+                                     FontFamily="Consolas"
+                                     Margin="0,8,0,0"
+                                     Padding="8"
+                                     Background="#F8F8F8"
+                                     BorderThickness="1"
+                                     BorderBrush="#E0E0E0"/>
                         </StackPanel>
                     </Border>
-
-                    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
                         <Button x:Name="SendCommandButton" Content="Send Command" 
-                    Style="{StaticResource PrimaryButtonStyle}"
-                    Click="SendCommand_Click" 
-                    Visibility="Collapsed"/>
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Click="SendCommand_Click" 
+                                Visibility="Collapsed"/>
                     </StackPanel>
                 </Grid>
             </Border>

@@ -1,15 +1,10 @@
 ﻿using RevitRemoteCommandTester.Models;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using Newtonsoft.Json;
 using System.Windows.Media;
-using System.Net.Sockets;
-using System.Text;
 using RevitRemoteCommandTester.Services;
 using Newtonsoft.Json.Linq;
 using RevitRemoteCommandTester.Components;
@@ -24,14 +19,14 @@ namespace RevitRemoteCommandTester
 
         // tcp通讯服务
         private TcpCommunicationService communicationService;
+        // 数据持久化服务
+        private readonly DataPersistenceService dataPersistenceService;
+        private bool isInitialLoad = true;
 
         public ObservableCollection<Collection> Collections { get; set; }
         private Command? currentCommand;
         public ObservableCollection<Parameter> Parameters { get; set; }
         private Popup? currentOpenPopup; // 跟踪当前打开的弹出菜单
-
-        // 字段用于存储数组项
-        private Dictionary<string, ObservableCollection<string>> arrayItems = new Dictionary<string, ObservableCollection<string>>();
 
         public MainWindow()
         {
@@ -41,11 +36,72 @@ namespace RevitRemoteCommandTester
             Parameters = new ObservableCollection<Parameter>();
 
             NavigationTreeView.ItemsSource = Collections;
-            ParametersItemsControl.ItemsSource = Parameters;
 
+            // 服务初始化
             communicationService = new TcpCommunicationService(ServerAddress, ServerPort);
+            dataPersistenceService = new DataPersistenceService();
+
+            // 加载数据
+            LoadDataAsync();
+
+            // 窗口关闭事件，用于保存数据
+            Closing += MainWindow_Closing;
         }
 
+        private void DisplayCommandProperties()
+        {
+            if (currentCommand != null && currentCommand.Parameters != null)
+            {
+                // 将命令参数转换为JSON格式并显示在文本框中
+                string jsonParams = JsonConvert.SerializeObject(currentCommand.Parameters, Formatting.Indented);
+                JsonParametersTextBox.Text = jsonParams;
+            }
+            else
+            {
+                JsonParametersTextBox.Text = "{}";
+            }
+        }
+
+        // 载入数据
+        private async void LoadDataAsync()
+        {
+            try
+            {
+                var loadedCollections = await dataPersistenceService.LoadCollectionsAsync();
+                if (loadedCollections != null && loadedCollections.Count > 0)
+                {
+                    foreach (var collection in loadedCollections)
+                    {
+                        Collections.Add(collection);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading data: {ex.Message}", "Data Load Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                isInitialLoad = false;
+            }
+        }
+
+        // 保存数据
+        private async void SaveDataAsync()
+        {
+            try
+            {
+                await dataPersistenceService.SaveCollectionsAsync(Collections);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error saving data: {ex.Message}", "Data Save Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        #region 事件
         private void AddCollection_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new AddCollectionDialog($"Collection {Collections.Count + 1}");
@@ -55,6 +111,9 @@ namespace RevitRemoteCommandTester
             {
                 var collection = new Collection(dialog.CollectionName);
                 Collections.Add(collection);
+
+                // 保存数据
+                if (!isInitialLoad) SaveDataAsync();
             }
         }
 
@@ -75,6 +134,9 @@ namespace RevitRemoteCommandTester
             {
                 var command = new Command(dialog.CommandName);
                 collection.Commands.Add(command);
+
+                // 保存数据
+                if (!isInitialLoad) SaveDataAsync();
             }
         }
 
@@ -114,22 +176,6 @@ namespace RevitRemoteCommandTester
             }
         }
 
-        private void DisplayCommandProperties()
-        {
-            if (currentCommand != null)
-            {
-                Parameters.Clear();
-                if (currentCommand.Parameters != null)
-                {
-                    foreach (var param in currentCommand.Parameters)
-                    {
-                        Parameters.Add(new Parameter(param.Key, param.Value));
-                    }
-                }
-            }
-        }
-
-        // 从集合信息面板添加命令的新方法
         private void AddCommand_FromInfoPanel(object sender, RoutedEventArgs e)
         {
             var button = sender as Button;
@@ -145,19 +191,9 @@ namespace RevitRemoteCommandTester
 
                 // 更新命令计数
                 CommandCount.Text = collection.Commands.Count.ToString();
-            }
-        }
 
-        private void AddParameter_Click(object sender, RoutedEventArgs e)
-        {
-            Parameters.Add(new Parameter("", ""));
-        }
-
-        private void RemoveParameter_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is Button button && button.Tag is Parameter parameter)
-            {
-                Parameters.Remove(parameter);
+                // 保存数据
+                if (!isInitialLoad) SaveDataAsync();
             }
         }
 
@@ -169,97 +205,38 @@ namespace RevitRemoteCommandTester
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-            // 更新命令参数
-            currentCommand.Parameters = new Dictionary<string, object>();
-
-            foreach (var param in Parameters)
-            {
-                if (!string.IsNullOrWhiteSpace(param.Key))
-                {
-                    // 查找类型选择器
-                    var typeSelector = FindParameterTypeSelector(param.Key);
-                    if (typeSelector != null)
-                    {
-                        var selectedItem = typeSelector.SelectedItem as ComboBoxItem;
-                        var valueType = selectedItem?.Tag as string;
-
-                        switch (valueType)
-                        {
-                            case "array":
-                                if (arrayItems.ContainsKey(param.Key))
-                                {
-                                    // 将ObservableCollection转换为数组
-                                    currentCommand.Parameters[param.Key] = arrayItems[param.Key].ToArray();
-                                }
-                                else
-                                {
-                                    currentCommand.Parameters[param.Key] = new string[0];
-                                }
-                                break;
-
-                            case "number":
-                                if (decimal.TryParse(param.Value.ToString(), out decimal numValue))
-                                    currentCommand.Parameters[param.Key] = numValue;
-                                else
-                                    currentCommand.Parameters[param.Key] = 0;
-                                break;
-
-                            case "boolean":
-                                if (bool.TryParse(param.Value.ToString(), out bool boolValue))
-                                    currentCommand.Parameters[param.Key] = boolValue;
-                                else
-                                    currentCommand.Parameters[param.Key] = false;
-                                break;
-
-                            case "null":
-                                currentCommand.Parameters[param.Key] = null;
-                                break;
-
-                            case "json":
-                                try
-                                {
-                                    currentCommand.Parameters[param.Key] = JsonConvert.DeserializeObject(param.Value.ToString());
-                                }
-                                catch (Exception ex)
-                                {
-                                    MessageBox.Show($"Invalid JSON for parameter '{param.Key}': {ex.Message}",
-                                        "JSON Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                                    return;
-                                }
-                                break;
-
-                            default: // text
-                                currentCommand.Parameters[param.Key] = param.Value;
-                                break;
-                        }
-                    }
-                    else
-                    {
-                        // 默认作为文本处理
-                        currentCommand.Parameters[param.Key] = param.Value;
-                    }
-                }
-            }
-
-            // 构建符合JSON-RPC 2.0规范的请求
-            var jsonRpcRequest = new
-            {
-                jsonrpc = "2.0",
-                method = currentCommand.Name,
-                @params = currentCommand.Parameters,
-                id = 1
-            };
-            string commandJson = JsonConvert.SerializeObject(jsonRpcRequest, Formatting.Indented);
-
             try
             {
+                // 尝试解析JSON参数
+                JObject parameterObj;
+                try
+                {
+                    parameterObj = JObject.Parse(JsonParametersTextBox.Text);
+                    currentCommand.Parameters = parameterObj.ToObject<Dictionary<string, object>>();
+
+                    // 参数更新后保存数据
+                    if (!isInitialLoad) SaveDataAsync();
+                }
+                catch (JsonException ex)
+                {
+                    MessageBox.Show($"Invalid JSON format: {ex.Message}", "JSON Error",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+                // 构建符合JSON-RPC 2.0规范的请求
+                var jsonRpcRequest = new
+                {
+                    jsonrpc = "2.0",
+                    method = currentCommand.Name,
+                    @params = currentCommand.Parameters,
+                    id = 1
+                };
+                string commandJson = JsonConvert.SerializeObject(jsonRpcRequest, Formatting.Indented);
                 ResponsePanel.Visibility = Visibility.Visible;
                 // 显示正在发送的命令
                 ResponseTextBox.Text = $"Sending command:\n{commandJson}\n\nWaiting for response...";
-
                 // 异步发送命令并获取响应
                 string response = await communicationService.SendRawCommandAsync(commandJson);
-
                 // 显示响应
                 ResponseTextBox.Text = $"Command sent:\n{commandJson}\n\nResponse:\n{response}";
             }
@@ -270,141 +247,68 @@ namespace RevitRemoteCommandTester
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-
-        private ComboBox FindParameterTypeSelector(string paramKey)
+        // JSON参数文本变化（检查格式）
+        private void JsonParameters_TextChanged(object sender, TextChangedEventArgs e)
         {
-            // 这里需要根据您的UI结构实现查找逻辑
-            // 简单实现示例，可能需要根据您的实际UI结构调整
-            foreach (var child in ParametersItemsControl.Items)
+            if (currentCommand == null) return;
+            try
             {
-                var container = ParametersItemsControl.ItemContainerGenerator.ContainerFromItem(child);
-                if (container != null)
+                // 检查JSON是否有效，但不立即更新命令参数
+                JObject jsonObj = JObject.Parse(JsonParametersTextBox.Text);
+
+                // 当参数实际变化时保存
+                var newParameters = jsonObj.ToObject<Dictionary<string, object>>();
+                string newJson = JsonConvert.SerializeObject(newParameters);
+                string oldJson = currentCommand.Parameters != null ?
+                    JsonConvert.SerializeObject(currentCommand.Parameters) : "null";
+
+                if (newJson != oldJson)
                 {
-                    var grid = FindVisualChild<Grid>(container);
-                    if (grid != null)
-                    {
-                        var keyTextBox = FindChild<TextBox>(grid, "KeyTextBox");
-                        if (keyTextBox != null && keyTextBox.Text == paramKey)
-                        {
-                            return FindChild<ComboBox>(grid, "ValueTypeSelector");
-                        }
-                    }
+                    currentCommand.Parameters = newParameters;
+
+                    // 保存数据
+                    if (!isInitialLoad) SaveDataAsync();
                 }
             }
-            return null;
-        }
-
-        // 通用的查找子控件方法
-        private T FindChild<T>(DependencyObject parent, string childName = null) where T : DependencyObject
-        {
-            if (parent == null) return null;
-
-            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            catch (JsonException)
             {
-                var child = VisualTreeHelper.GetChild(parent, i);
-
-                if (child is T typedChild &&
-                    (childName == null || (child is FrameworkElement fe && fe.Name == childName)))
-                {
-                    return typedChild;
-                }
-
-                var result = FindChild<T>(child, childName);
-                if (result != null)
-                    return result;
-            }
-            return null;
-        }
-
-        // 查找第一个指定类型的Visual子元素
-        private T FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
-        {
-            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
-            {
-                var child = VisualTreeHelper.GetChild(parent, i);
-                if (child is T typedChild)
-                    return typedChild;
-
-                var result = FindVisualChild<T>(child);
-                if (result != null)
-                    return result;
-            }
-            return null;
-        }
-
-        // 查找父控件
-        private T FindParent<T>(DependencyObject child) where T : DependencyObject
-        {
-            DependencyObject parent = VisualTreeHelper.GetParent(child);
-            while (parent != null && !(parent is T))
-            {
-                parent = VisualTreeHelper.GetParent(parent);
-            }
-            return parent as T;
-        }
-
-        private Grid FindParentGrid(DependencyObject child)
-        {
-            DependencyObject parent = VisualTreeHelper.GetParent(child);
-            while (parent != null && !(parent is Grid))
-            {
-                parent = VisualTreeHelper.GetParent(parent);
-            }
-            return parent as Grid;
-        }
-
-        // 添加数组项
-        private void AddArrayItem_Click(object sender, RoutedEventArgs e)
-        {
-            var button = sender as Button;
-            if (button == null) return;
-
-            // 向上查找参数键和对应的数组集合
-            var arrayBorder = FindParent<Border>(button);
-            var parameterGrid = FindParent<Grid>(arrayBorder);
-            var keyTextBox = FindChild<TextBox>(parameterGrid, "KeyTextBox");
-
-            if (keyTextBox != null)
-            {
-                string key = keyTextBox.Text;
-                if (arrayItems.ContainsKey(key))
-                {
-                    arrayItems[key].Add("");
-                }
+                // 如果JSON格式无效，暂不处理，等到用户点击发送按钮时处理
             }
         }
-
-        // 删除数组项
-        private void RemoveArrayItem_Click(object sender, RoutedEventArgs e)
+        // JSON格式化
+        private void FormatJson_Click(object sender, RoutedEventArgs e)
         {
-            var button = sender as Button;
-            if (button == null) return;
-
-            var item = button.Tag as string;
-            var arrayBorder = FindParent<Border>(button);
-            var parameterGrid = FindParent<Grid>(arrayBorder);
-            var keyTextBox = FindChild<TextBox>(parameterGrid, "KeyTextBox");
-
-            if (keyTextBox != null)
+            try
             {
-                string key = keyTextBox.Text;
-                if (arrayItems.ContainsKey(key))
-                {
-                    arrayItems[key].Remove(item);
-                }
+                // 解析当前JSON文本并格式化
+                JObject jsonObj = JObject.Parse(JsonParametersTextBox.Text);
+                JsonParametersTextBox.Text = jsonObj.ToString(Formatting.Indented);
+            }
+            catch (JsonException ex)
+            {
+                MessageBox.Show($"Invalid JSON format: {ex.Message}", "Format Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        // 清除JSON输入
+        private void ClearJson_Click(object sender, RoutedEventArgs e)
+        {
+            JsonParametersTextBox.Text = "{}";
+        }
+        // 窗口关闭（保存数据）
+        private void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            SaveDataAsync();
+        }
+        #endregion
 
         #region 集合和命令操作方法
-
         private void ShowCollectionOptions_Click(object sender, RoutedEventArgs e)
         {
             // 关闭任何已打开的弹出菜单
             CloseCurrentPopup();
-
             var button = sender as Button;
             if (button == null) return;
-
             // 找到当前按钮关联的 Popup
             var parent = VisualTreeHelper.GetParent(button);
             while (parent != null)
@@ -425,15 +329,12 @@ namespace RevitRemoteCommandTester
                 parent = VisualTreeHelper.GetParent(parent);
             }
         }
-
         private void ShowCommandOptions_Click(object sender, RoutedEventArgs e)
         {
             // 关闭任何已打开的弹出菜单
             CloseCurrentPopup();
-
             var button = sender as Button;
             if (button == null) return;
-
             // 找到当前按钮关联的 Popup
             var parent = VisualTreeHelper.GetParent(button);
             while (parent != null)
@@ -454,7 +355,6 @@ namespace RevitRemoteCommandTester
                 parent = VisualTreeHelper.GetParent(parent);
             }
         }
-
         private void CloseCurrentPopup()
         {
             if (currentOpenPopup != null && currentOpenPopup.IsOpen)
@@ -463,26 +363,24 @@ namespace RevitRemoteCommandTester
                 currentOpenPopup = null;
             }
         }
-
         private void RenameCollection_Click(object sender, RoutedEventArgs e)
         {
             CloseCurrentPopup();
-
             var button = sender as Button;
             if (button == null) return;
             var collection = button.Tag as Collection;
             if (collection == null) return;
-
             var dialog = new AddCollectionDialog(collection.Name);
             dialog.Title = "Rename Collection";
             dialog.Owner = this;
-
             if (dialog.ShowDialog() == true)
             {
                 collection.Name = dialog.CollectionName;
+
+                // 保存数据
+                if (!isInitialLoad) SaveDataAsync();
             }
         }
-
         private void DeleteCollection_Click(object sender, RoutedEventArgs e)
         {
             CloseCurrentPopup();
@@ -499,15 +397,17 @@ namespace RevitRemoteCommandTester
                 if (currentCommand != null && collection.Commands.Contains(currentCommand))
                 {
                     currentCommand = null;
-                    SelectedItemName.Text = "";  // 修正为 SelectedItemName
-                    Parameters.Clear();
+                    SelectedItemName.Text = "";
                     // 隐藏参数面板
                     CommandParametersPanel.Visibility = Visibility.Collapsed;
                     SendCommandButton.Visibility = Visibility.Collapsed;
+                    ResponsePanel.Visibility = Visibility.Collapsed;
+
+                    // 保存数据
+                    if (!isInitialLoad) SaveDataAsync();
                 }
             }
         }
-
         private void RenameCommand_Click(object sender, RoutedEventArgs e)
         {
             CloseCurrentPopup();
@@ -524,12 +424,13 @@ namespace RevitRemoteCommandTester
                 // 如果重命名的是当前选中的命令，更新标题
                 if (command == currentCommand)
                 {
-                    // 使用SelectedItemName而不是SelectedCommandName
                     SelectedItemName.Text = command.Name;
                 }
+
+                // 保存数据
+                if (!isInitialLoad) SaveDataAsync();
             }
         }
-
         private void DeleteCommand_Click(object sender, RoutedEventArgs e)
         {
             CloseCurrentPopup();
@@ -551,271 +452,20 @@ namespace RevitRemoteCommandTester
                         if (command == currentCommand)
                         {
                             currentCommand = null;
-                            SelectedItemName.Text = "";  // 修正为 SelectedItemName
-                            Parameters.Clear();
-
+                            SelectedItemName.Text = "";
                             // 隐藏参数面板
                             CommandParametersPanel.Visibility = Visibility.Collapsed;
                             SendCommandButton.Visibility = Visibility.Collapsed;
+                            ResponsePanel.Visibility = Visibility.Collapsed;
                         }
 
+                        // 保存数据
+                        if (!isInitialLoad) SaveDataAsync();
                         break;
                     }
                 }
             }
         }
-
-        // 对象值编辑器弹窗
-        private void EditObjectValue_Click(object sender, RoutedEventArgs e)
-        {
-            var button = sender as Button;
-            if (button == null) return;
-
-            var parameter = button.Tag as Parameter;
-            if (parameter == null) return;
-
-            // 创建一个对象编辑器弹窗
-            var dialog = new ObjectEditorDialog(parameter.Key, parameter.Value);
-            dialog.Owner = this;
-
-            if (dialog.ShowDialog() == true)
-            {
-                parameter.Value = dialog.ObjectValue;
-                UpdateJsonPreview();
-            }
-        }
-        // 数组值编辑器弹窗
-        private void EditArrayValue_Click(object sender, RoutedEventArgs e)
-        {
-            var button = sender as Button;
-            if (button == null) return;
-
-            var parameter = button.Tag as Parameter;
-            if (parameter == null) return;
-
-            // 创建一个数组编辑器弹窗
-            var dialog = new ArrayEditorDialog(parameter.Key, parameter.Value);
-            dialog.Owner = this;
-
-            if (dialog.ShowDialog() == true)
-            {
-                parameter.Value = dialog.ArrayValue;
-                UpdateJsonPreview();
-            }
-        }
-        // 类型选择改变事件处理
-        private void ValueTypeSelector_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            var comboBox = sender as ComboBox;
-            if (comboBox == null) return;
-
-            var selectedItem = comboBox.SelectedItem as ComboBoxItem;
-            if (selectedItem == null) return;
-
-            var valueType = selectedItem.Tag as string;
-            var parameter = comboBox.Tag as Parameter;
-            if (parameter == null) return;
-
-            // 找到相关控件
-            var container = comboBox.TemplatedParent as ContentPresenter;
-            if (container == null) return;
-
-            var grid = container.ContentTemplate.FindName("Grid", container) as Grid;
-            if (grid == null) return;
-
-            var stringEditor = FindChild<TextBox>(grid, "StringValueEditor");
-            var numberEditor = FindChild<TextBox>(grid, "NumberValueEditor");
-            var booleanEditor = FindChild<ComboBox>(grid, "BooleanValueEditor");
-            var objectButton = FindChild<Button>(grid, "ObjectEditorButton");
-            var arrayButton = FindChild<Button>(grid, "ArrayEditorButton");
-            var nullDisplay = FindChild<TextBlock>(grid, "NullValueDisplay");
-
-            // 隐藏所有编辑器
-            if (stringEditor != null) stringEditor.Visibility = Visibility.Collapsed;
-            if (numberEditor != null) numberEditor.Visibility = Visibility.Collapsed;
-            if (booleanEditor != null) booleanEditor.Visibility = Visibility.Collapsed;
-            if (objectButton != null) objectButton.Visibility = Visibility.Collapsed;
-            if (arrayButton != null) arrayButton.Visibility = Visibility.Collapsed;
-            if (nullDisplay != null) nullDisplay.Visibility = Visibility.Collapsed;
-
-            // 根据选择的类型显示对应的编辑器
-            switch (valueType)
-            {
-                case "string":
-                    if (stringEditor != null) stringEditor.Visibility = Visibility.Visible;
-                    break;
-                case "number":
-                    if (numberEditor != null) numberEditor.Visibility = Visibility.Visible;
-                    // 尝试转换为数字格式
-                    if (parameter.Value != null && decimal.TryParse(parameter.Value.ToString(), out decimal numValue))
-                        numberEditor.Text = numValue.ToString();
-                    else
-                        numberEditor.Text = "0";
-                    break;
-                case "boolean":
-                    if (booleanEditor != null)
-                    {
-                        booleanEditor.Visibility = Visibility.Visible;
-                        // 设置布尔值
-                        bool isTrue = parameter.Value != null &&
-                            bool.TryParse(parameter.Value.ToString(), out bool value) && value;
-                        booleanEditor.SelectedIndex = isTrue ? 0 : 1;
-                    }
-                    break;
-                case "object":
-                    if (objectButton != null) objectButton.Visibility = Visibility.Visible;
-                    break;
-                case "array":
-                    if (arrayButton != null) arrayButton.Visibility = Visibility.Visible;
-                    break;
-                case "null":
-                    if (nullDisplay != null) nullDisplay.Visibility = Visibility.Visible;
-                    parameter.Value = null;
-                    break;
-            }
-
-            UpdateJsonPreview();
-        }
-        // 更新JSON预览
-        private void UpdateJsonPreview()
-        {
-            if (currentCommand == null) return;
-
-            // 更新命令参数
-            var tempParams = new Dictionary<string, object>();
-
-            foreach (var param in Parameters)
-            {
-                if (!string.IsNullOrWhiteSpace(param.Key))
-                {
-                    // 查找类型选择器
-                    var typeSelector = FindParameterTypeSelector(param.Key);
-                    if (typeSelector != null)
-                    {
-                        var selectedItem = typeSelector.SelectedItem as ComboBoxItem;
-                        var valueType = selectedItem?.Tag as string;
-
-                        switch (valueType)
-                        {
-                            case "string":
-                                tempParams[param.Key] = param.Value?.ToString() ?? "";
-                                break;
-                            case "number":
-                                if (decimal.TryParse(param.Value?.ToString(), out decimal numValue))
-                                    tempParams[param.Key] = numValue;
-                                else
-                                    tempParams[param.Key] = 0;
-                                break;
-                            case "boolean":
-                                if (bool.TryParse(param.Value?.ToString(), out bool boolValue))
-                                    tempParams[param.Key] = boolValue;
-                                else
-                                    tempParams[param.Key] = false;
-                                break;
-                            case "object":
-                                if (param.Value is JObject jObject)
-                                    tempParams[param.Key] = jObject;
-                                else if (param.Value != null)
-                                    try { tempParams[param.Key] = JObject.Parse(param.Value.ToString()); }
-                                    catch { tempParams[param.Key] = new JObject(); }
-                                else
-                                    tempParams[param.Key] = new JObject();
-                                break;
-                            case "array":
-                                if (param.Value is JArray jArray)
-                                    tempParams[param.Key] = jArray;
-                                else if (param.Value != null)
-                                    try { tempParams[param.Key] = JArray.Parse(param.Value.ToString()); }
-                                    catch { tempParams[param.Key] = new JArray(); }
-                                else
-                                    tempParams[param.Key] = new JArray();
-                                break;
-                            case "null":
-                                tempParams[param.Key] = null;
-                                break;
-                        }
-                    }
-                    else
-                    {
-                        // 默认作为字符串处理
-                        tempParams[param.Key] = param.Value?.ToString() ?? "";
-                    }
-                }
-            }
-
-            // 构建JSON-RPC 2.0请求预览
-            var jsonRpcRequest = new
-            {
-                jsonrpc = "2.0",
-                method = currentCommand.Name,
-                @params = tempParams,
-                id = 1
-            };
-
-            string previewJson = JsonConvert.SerializeObject(jsonRpcRequest, Formatting.Indented);
-
-            if (JsonPreviewTextBox != null)
-            {
-                JsonPreviewTextBox.Text = previewJson;
-            }
-        }
-        // 导入参数
-        private void ImportParameters_Click(object sender, RoutedEventArgs e)
-        {
-            var dialog = new TextInputDialog("Import Parameters", "Paste JSON object for parameters:");
-            dialog.Owner = this;
-
-            if (dialog.ShowDialog() == true)
-            {
-                try
-                {
-                    var paramsObject = JsonConvert.DeserializeObject<Dictionary<string, object>>(dialog.InputText);
-                    if (paramsObject != null)
-                    {
-                        Parameters.Clear();
-                        foreach (var param in paramsObject)
-                        {
-                            Parameters.Add(new Parameter(param.Key, param.Value));
-                        }
-                        UpdateJsonPreview();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Failed to parse JSON: {ex.Message}", "Import Error",
-                                   MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-        }
-        // 导出参数
-        private void ExportParameters_Click(object sender, RoutedEventArgs e)
-        {
-            // 更新命令参数
-            var tempParams = new Dictionary<string, object>();
-
-            foreach (var param in Parameters)
-            {
-                if (!string.IsNullOrWhiteSpace(param.Key))
-                {
-                    var typeSelector = FindParameterTypeSelector(param.Key);
-                    if (typeSelector != null)
-                    {
-                        var selectedItem = typeSelector.SelectedItem as ComboBoxItem;
-                        var valueType = selectedItem?.Tag as string;
-
-                        // 使用与UpdateJsonPreview相同的逻辑获取参数
-                        // [此处省略相同的代码逻辑]
-                    }
-                }
-            }
-
-            string paramsJson = JsonConvert.SerializeObject(tempParams, Formatting.Indented);
-
-            var dialog = new TextOutputDialog("Export Parameters", "Copy the JSON below:", paramsJson);
-            dialog.Owner = this;
-            dialog.ShowDialog();
-        }
-
         #endregion
     }
 }

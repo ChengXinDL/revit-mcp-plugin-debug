@@ -1,4 +1,4 @@
-﻿<Window x:Class="RevitRemoteCommandTester.AddCollectionDialog"
+﻿<Window x:Class="RevitRemoteCommandTester.Components.AddCollectionDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Add Collection" SizeToContent="Height" Width="400"

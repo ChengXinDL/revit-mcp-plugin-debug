@@ -1,7 +1,7 @@
 ﻿// AddCommandDialog.xaml.cs
 using System.Windows;
 
-namespace RevitRemoteCommandTester
+namespace RevitRemoteCommandTester.Components
 {
     public partial class AddCommandDialog : Window
     {
