@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:RevitRemoteCommandTester"
         xmlns:models="clr-namespace:RevitRemoteCommandTester.Models"
         mc:Ignorable="d"
-        Title="Debug Tool" Height="600" Width="1000"
+        Title="RemoteCommandTester" Height="600" Width="1000"
         Background="#F5F5F5"
         FontFamily="Segoe UI">
     <Window.Resources>
@@ -182,137 +182,183 @@
 
                     <!-- 命令参数面板 -->
                     <ScrollViewer Grid.Row="1" x:Name="CommandParametersPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-                        <StackPanel>
-                            <TextBlock Text="Parameters" Style="{StaticResource HeaderTextBlockStyle}"/>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
 
-                            <!-- 键值对编辑区 -->
-                            <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" 
-                                    Margin="0,0,0,16" Padding="8">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="*"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Parameters" Style="{StaticResource HeaderTextBlockStyle}"/>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <Button Content="Import" Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0" Click="ImportParameters_Click"/>
+                                    <Button Content="Export" Style="{StaticResource SecondaryButtonStyle}" Click="ExportParameters_Click"/>
+                                </StackPanel>
+                            </Grid>
+                            <Grid Grid.Row="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
 
-                                    <!-- 表头 -->
-                                    <Grid Grid.Row="0" Margin="0,0,0,8">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="Key" FontWeight="SemiBold" Margin="4,0"/>
-                                        <TextBlock Grid.Column="2" Text="Value" FontWeight="SemiBold" Margin="4,0"/>
-                                    </Grid>
+                                <!-- 参数编辑器 -->
+                                <Border Grid.Column="0" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Margin="0,8,8,0" Padding="8">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
 
-                                    <!-- 参数列表 -->
-                                    <ItemsControl Grid.Row="1" x:Name="ParametersItemsControl">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Grid Margin="0,2">
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Margin="0,0,8,0">
-                                                        <TextBox Text="{Binding Key}" BorderThickness="0" Padding="4"/>
-                                                    </Border>
-                                                    <!-- 类型选择器 -->
-                                                    <ComboBox Grid.Column="1" Width="80" Margin="0,0,8,0" SelectedIndex="0"
-                                                              x:Name="ValueTypeSelector" Tag="{Binding}">
-                                                        <ComboBoxItem Content="Text" Tag="text"/>
-                                                        <ComboBoxItem Content="Number" Tag="number"/>
-                                                        <ComboBoxItem Content="Boolean" Tag="boolean"/>
-                                                        <ComboBoxItem Content="Array" Tag="array"/>
-                                                        <ComboBoxItem Content="JSON" Tag="json"/>
-                                                        <ComboBoxItem Content="Null" Tag="null"/>
-                                                    </ComboBox>
-                                                    <!-- 值编辑器 -->
-                                                    <Grid Grid.Column="2" Margin="0,0,8,0">
-                                                        <!-- 标准文本框 - 默认可见 -->
-                                                        <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" x:Name="TextValueBorder">
-                                                            <TextBox Text="{Binding Value}" BorderThickness="0" Padding="4" x:Name="TextValueBox"/>
-                                                        </Border>
+                                        <!-- 表头 -->
+                                        <Grid Grid.Row="0" Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="1.5*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Parameter Name" FontWeight="SemiBold" Margin="4,0"/>
+                                            <TextBlock Grid.Column="1" Text="Type" FontWeight="SemiBold" Margin="4,0"/>
+                                            <TextBlock Grid.Column="2" Text="Value" FontWeight="SemiBold" Margin="4,0"/>
+                                        </Grid>
 
-                                                        <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" x:Name="ArrayValueBorder" Visibility="Collapsed">
-                                                            <Grid>
-                                                                <Grid.RowDefinitions>
-                                                                    <RowDefinition Height="Auto"/>
-                                                                    <RowDefinition Height="*"/>
-                                                                    <RowDefinition Height="Auto"/>
-                                                                </Grid.RowDefinitions>
+                                        <!-- 参数列表 -->
+                                        <ItemsControl Grid.Row="1" x:Name="ParametersItemsControl">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border BorderBrush="#F0F0F0" BorderThickness="0,0,0,1" Padding="0,4">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="100"/>
+                                                                <ColumnDefinition Width="1.5*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
 
-                                                                <!-- 数组项列表 -->
-                                                                <ItemsControl Grid.Row="1" x:Name="ArrayItemsControl">
-                                                                    <ItemsControl.ItemTemplate>
-                                                                        <DataTemplate>
-                                                                            <Grid Margin="0,2">
-                                                                                <Grid.ColumnDefinitions>
-                                                                                    <ColumnDefinition Width="*"/>
-                                                                                    <ColumnDefinition Width="Auto"/>
-                                                                                </Grid.ColumnDefinitions>
+                                                            <!-- 参数名称 -->
+                                                            <TextBox x:Name="KeyTextBox" Grid.Column="0" 
+                                                 Text="{Binding Key}" 
+                                                 BorderThickness="1" BorderBrush="#E0E0E0" 
+                                                 Padding="6,4" Margin="0,0,8,0"
+                                                 ToolTip="Parameter name"/>
 
-                                                                                <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" Margin="0,0,4,0">
-                                                                                    <TextBox Text="{Binding}" BorderThickness="0" Padding="2"/>
-                                                                                </Border>
+                                                            <!-- 类型选择器 -->
+                                                            <ComboBox Grid.Column="1" x:Name="ValueTypeSelector"
+                                                  SelectedIndex="0" Margin="0,0,8,0"
+                                                  Tag="{Binding}"
+                                                  SelectionChanged="ValueTypeSelector_SelectionChanged">
+                                                                <ComboBoxItem Content="String" Tag="string"/>
+                                                                <ComboBoxItem Content="Number" Tag="number"/>
+                                                                <ComboBoxItem Content="Boolean" Tag="boolean"/>
+                                                                <ComboBoxItem Content="Object" Tag="object"/>
+                                                                <ComboBoxItem Content="Array" Tag="array"/>
+                                                                <ComboBoxItem Content="Null" Tag="null"/>
+                                                            </ComboBox>
 
-                                                                                <Button Grid.Column="1" Style="{StaticResource IconButtonStyle}"
-                                    Width="24" Height="24"
-                                    Click="RemoveArrayItem_Click" 
-                                    Tag="{Binding}">
-                                                                                    <Path Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" 
-                                      Fill="#F44336" Width="10" Height="10"/>
-                                                                                </Button>
-                                                                            </Grid>
-                                                                        </DataTemplate>
-                                                                    </ItemsControl.ItemTemplate>
-                                                                </ItemsControl>
+                                                            <!-- 值编辑区域 -->
+                                                            <Grid Grid.Column="2" Margin="0,0,8,0">
+                                                                <!-- 字符串编辑器 -->
+                                                                <TextBox x:Name="StringValueEditor" Visibility="Visible"
+                                                    Text="{Binding Value}" 
+                                                    BorderThickness="1" BorderBrush="#E0E0E0"
+                                                    Padding="6,4"/>
 
-                                                                <!-- 添加数组项按钮 -->
-                                                                <Button Grid.Row="2" Content="+ Add Item" 
-                    Style="{StaticResource SecondaryButtonStyle}"
-                    HorizontalAlignment="Left" Margin="0,4,0,0"
-                    Click="AddArrayItem_Click"
-                    Padding="8,2"/>
+                                                                <!-- 数字编辑器 -->
+                                                                <TextBox x:Name="NumberValueEditor" Visibility="Collapsed"
+                                                    Text="{Binding Value}" 
+                                                    BorderThickness="1" BorderBrush="#E0E0E0"
+                                                    Padding="6,4"/>
+
+                                                                <!-- 布尔编辑器 -->
+                                                                <ComboBox x:Name="BooleanValueEditor" Visibility="Collapsed"
+                                                     SelectedIndex="0" IsEditable="False"
+                                                     BorderThickness="1" BorderBrush="#E0E0E0"
+                                                     Padding="6,4">
+                                                                    <ComboBoxItem Content="true" Tag="true"/>
+                                                                    <ComboBoxItem Content="false" Tag="false"/>
+                                                                </ComboBox>
+
+                                                                <!-- 对象编辑器按钮 -->
+                                                                <Button x:Name="ObjectEditorButton" Visibility="Collapsed"
+                                                   Content="Edit Object" 
+                                                   Style="{StaticResource SecondaryButtonStyle}"
+                                                   Click="EditObjectValue_Click"
+                                                   Tag="{Binding}"/>
+
+                                                                <!-- 数组编辑器按钮 -->
+                                                                <Button x:Name="ArrayEditorButton" Visibility="Collapsed"
+                                                   Content="Edit Array" 
+                                                   Style="{StaticResource SecondaryButtonStyle}"
+                                                   Click="EditArrayValue_Click"
+                                                   Tag="{Binding}"/>
+
+                                                                <!-- NULL编辑器 -->
+                                                                <TextBlock x:Name="NullValueDisplay" Visibility="Collapsed"
+                                                      Text="null" Foreground="#888888"
+                                                      VerticalAlignment="Center" Padding="6,4"/>
                                                             </Grid>
-                                                        </Border>
 
+                                                            <!-- 删除按钮 -->
+                                                            <Button Grid.Column="3" 
+                                                Style="{StaticResource IconButtonStyle}"
+                                                Click="RemoveParameter_Click" 
+                                                Tag="{Binding}"
+                                                ToolTip="Remove Parameter">
+                                                                <Path Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" 
+                                                  Fill="#F44336" Width="14" Height="14"/>
+                                                            </Button>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
 
-                                                        <!-- JSON编辑器 - 当选择JSON类型时可见 -->
-                                                        <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" x:Name="JsonValueBorder" Visibility="Collapsed">
-                                                            <TextBox Text="{Binding Value}" BorderThickness="0" Padding="4" 
-                                                                     x:Name="JsonValueBox" 
-                                                                     FontFamily="Consolas"
-                                                                     AcceptsReturn="True" 
-                                                                     VerticalScrollBarVisibility="Auto"
-                                                                     MinHeight="80"
-                                                                     TextWrapping="Wrap"/>
-                                                        </Border>
-                                                    </Grid>
+                                        <!-- 添加参数按钮 -->
+                                        <Button Grid.Row="2" Content="Add Parameter" 
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            HorizontalAlignment="Left" Margin="0,8,0,0"
+                            Click="AddParameter_Click"/>
+                                    </Grid>
+                                </Border>
 
-                                                    <Button Grid.Column="3" Style="{StaticResource IconButtonStyle}"
-                                                            Click="RemoveParameter_Click" 
-                                                            Tag="{Binding}"
-                                                            ToolTip="Remove Parameter">
-                                                        <Path Data="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" 
-                                                              Fill="#F44336" Width="14" Height="14"/>
-                                                    </Button>
-                                                </Grid>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
+                                <!-- 分隔线 -->
+                                <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" 
+                         VerticalAlignment="Stretch" Background="#E0E0E0"/>
 
-                                    <!-- 添加参数按钮 -->
-                                    <Button Grid.Row="2" Content="Add Parameter" 
-                                            Style="{StaticResource SecondaryButtonStyle}"
-                                            HorizontalAlignment="Left" Margin="0,8,0,0"
-                                            Click="AddParameter_Click"/>
-                                </Grid>
-                            </Border>
-                        </StackPanel>
+                                <!-- JSON预览 -->
+                                <Border Grid.Column="2" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" 
+                   Margin="8,8,0,0" Padding="8">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock Grid.Row="0" Text="JSON-RPC Preview" 
+                               FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+                                        <TextBox Grid.Row="1" x:Name="JsonPreviewTextBox"
+                            IsReadOnly="True"
+                            TextWrapping="Wrap"
+                            FontFamily="Consolas"
+                            FontSize="12"
+                            BorderThickness="1"
+                            BorderBrush="#E0E0E0"
+                            Background="#F8F8F8"
+                            VerticalScrollBarVisibility="Auto"
+                            HorizontalScrollBarVisibility="Auto"
+                            Padding="8"/>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </Grid>
                     </ScrollViewer>
 
                     <Border Grid.Row="2" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" 
