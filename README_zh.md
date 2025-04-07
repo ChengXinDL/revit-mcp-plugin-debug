@@ -4,7 +4,7 @@
 
 Remote Command Tester 是一个用于向 [Revit-MCP-Plugin](https://github.com/revit-mcp/revit-mcp-plugin) 发送远程命令的桌面应用程序。这个工具主要用于对 Revit-MCP-Plugin 的功能进行调试，提供了一个简单直观的方式来测试和验证远程命令的执行结果。
 
-![Screenshot](./images/Screenshot.png)
+![Screenshot](Images/Screenshot.png)
 
 ## 功能特点
 
