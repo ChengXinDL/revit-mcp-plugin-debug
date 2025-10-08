@@ -15,10 +15,12 @@ namespace RevitRemoteCommandTester
     {
         // 添加服务器配置属性
         public string ServerAddress { get; set; } = "localhost";
-        public int ServerPort { get; set; } = 8080;
+        public int ServerPort { get; set; } = 8082;
 
-        // tcp通讯服务
-        private TcpCommunicationService communicationService;
+        //// tcp通讯服务
+        //private TcpCommunicationService communicationService;
+        // webSocket通讯服务
+        private WebSocketCommunicationService communicationService;
         // 数据持久化服务
         private readonly DataPersistenceService dataPersistenceService;
         private bool isInitialLoad = true;
@@ -38,7 +40,8 @@ namespace RevitRemoteCommandTester
             NavigationTreeView.ItemsSource = Collections;
 
             // 服务初始化
-            communicationService = new TcpCommunicationService(ServerAddress, ServerPort);
+            //communicationService = new TcpCommunicationService(ServerAddress, ServerPort);
+            communicationService = new WebSocketCommunicationService(ServerAddress, ServerPort);
             dataPersistenceService = new DataPersistenceService();
 
             // 加载数据
@@ -223,6 +226,22 @@ namespace RevitRemoteCommandTester
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
+
+                // 修复：只在未连接时建立连接
+                if (!communicationService.IsConnected)
+                {
+                    try
+                    {
+                        await communicationService.ConnectAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Failed to connect to server: {ex.Message}", "Connection Error",
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+                }
+
                 // 构建符合JSON-RPC 2.0规范的请求
                 var jsonRpcRequest = new
                 {
